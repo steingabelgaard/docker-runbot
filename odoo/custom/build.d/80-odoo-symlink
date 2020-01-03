@@ -3,4 +3,7 @@ set -e
 src=/opt/odoo/custom/src/odoo
 dst=/usr/local/bin/odoo
 
-ln -s $dst.py $dst
+if [ ! \( -e "${dst}.py"\) ]
+then
+   ln -s $dst.py $dst
+fi

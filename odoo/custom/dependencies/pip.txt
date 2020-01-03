@@ -1,1 +1,2 @@
 simplejson
+git+https://github.com/steingabelgaard/travis2docker.git#egg=travis2docker

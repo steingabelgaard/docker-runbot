@@ -11,3 +11,4 @@ services:
       ODOO_MAJOR: 9
       ODOO_MINOR: 9.0
       DEPTH_DEFAULT: 1
+    restart: unless-stopped

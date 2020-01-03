@@ -1,5 +1,6 @@
-FROM lasley/docker-odoo-base
-MAINTAINER LasLabs Inc <support@laslabs.com>
+ARG ODOO_VERSION
+FROM tecnativa/doodba:${ODOO_VERSION}-onbuild
+MAINTAINER Stein Gabelgaard 
 
 VOLUME /home/odoo/.ssh
 

@@ -1,0 +1,152 @@
+version: '2'
+volumes:
+  odoo-web-data:
+  odoo-db-data:
+  runbot-builds:
+  runbot-ssh:
+services:
+  install:
+    image: $ODOO_IMAGE:$ODOO_MINOR
+    build:
+            context: ./odoo
+            args:
+                ODOO_VERSION: $ODOO_MINOR
+    command: 'install-addons'
+    links:
+    - postgresql:db
+    volumes:
+    - odoo-web-data:/var/lib/odoo
+    - /var/run/docker.sock:/var/run/docker.sock
+    - runbot-builds:/opt/odoo/custom/src/odoo-extra/runbot/static
+    - runbot-ssh:/home/odoo/.ssh
+    tty: true
+    networks:
+            default:
+    environment:
+      PGPASSWORD: odoo
+      PGUSER: odoo
+      WITHOUT_DEMO: all
+      GITHUB_USER: sgrunbot
+      GITHUB_TOKEN: Mikkel15
+      GITHUB_EMAIL: sgrunbot@adm.steingabelgaard.dk
+  cron:
+    privileged: true
+    image: $ODOO_IMAGE:$ODOO_MINOR
+    build:
+            context: ./odoo
+            args:
+                ODOO_VERSION: $ODOO_MINOR
+    environment:
+      PGPASSWORD: odoo
+      PGUSER: odoo
+      WAIT_NOHOST: install
+    volumes:
+    - odoo-web-data:/var/lib/odoo
+    - /var/run/docker.sock:/var/run/docker.sock
+    - runbot-builds:/opt/odoo/custom/src/odoo-extra/runbot/static
+    - runbot-ssh:/home/odoo/.ssh
+    tty: true
+    links:
+    - postgresql:db
+    command:
+    - /usr/local/bin/odoo
+    - --max-cron-threads=1
+    - --workers=1
+    - --limit-time-real=600
+    - --limit-time-cpu=300
+  postgresql:
+    image: postgres:9.6-alpine
+    hostname: db
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_USER: odoo
+    volumes:
+    - odoo-db-data:/var/lib/postgresql/data/pgdata
+  web:
+    image: $ODOO_IMAGE:$ODOO_MINOR
+    build:
+            context: ./odoo
+            args:
+                ODOO_VERSION: $ODOO_MINOR
+    environment:
+      ADMIN_PASSWORD: admin
+      PGPASSWORD: odoo
+      PGUSER: odoo
+      PROXY_MODE: 'true'
+      WAIT_NOHOST: install
+    volumes:
+    - odoo-web-data:/var/lib/odoo
+    - /var/run/docker.sock:/var/run/docker.sock
+    - runbot-builds:/opt/odoo/custom/src/odoo-extra/runbot/static
+    tty: true
+    links:
+    - postgresql:db
+    ports:
+    - 8069
+    command:
+    - /usr/local/bin/odoo
+    - --max-cron-threads=0
+    - --workers=4
+    - --no-database-list
+    - --db-filter=prod
+    labels:
+      # traefik.docker.network: "shared"
+      traefik.enable: 'true'
+      traefik.port: '8069'
+      traefik.longpolling.frontend.rule:
+               "Host:runbot2.steingabelgaard.dk;PathPrefix:/longpolling/"
+      traefik.longpolling.port: "8072"
+      traefik.www.frontend.rule: 'Host:runbot2.steingabelgaard.dk'
+      traefik.frontend.passHostHeader: 'true'
+  traefik:
+    image: traefik:1.6-alpine 
+    networks:
+            default:
+            private:
+            public:
+
+    stdin_open: true
+    depends_on:
+            - dockersocket
+    #volumes:
+    #- /var/run/docker.sock:/var/run/docker.sock
+    tty: true
+    restart: unless-stopped
+    privileged: true
+    ports:
+    - 80:80
+    - 8080:8080
+    command:
+    - --DefaultEntryPoints=http
+    - --EntryPoints=Name:http Address::80
+    - --Docker
+    - --Docker.EndPoint=http://dockersocket:2375
+    - --Docker.ExposedByDefault=false
+    - --Docker.Watch
+    - --api  
+    - --web
+  dockersocket:
+        image: tecnativa/docker-socket-proxy
+        privileged: true
+        networks:
+            private:
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+            CONTAINERS: 1
+            NETWORKS: 1
+            SERVICES: 1
+            SWARM: 1
+            TASKS: 1
+        restart: unless-stopped
+
+networks:
+    # default:
+
+    private:
+        internal: true
+
+    public:
+
+

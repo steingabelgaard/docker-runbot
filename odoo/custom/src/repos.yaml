@@ -19,7 +19,7 @@
     depth: "$DEPTH_DEFAULT"
   remotes:
     odoo: https://github.com/odoo/odoo-extra.git
-    vauxoo: https://github.com/vauxoo/odoo-extra.git
+    vauxoo: https://github.com/steingabelgaard/odoo-extra.git
   target:
     odoo aggregated_branch_name
   merges:
@@ -30,11 +30,11 @@
     depth: "$DEPTH_DEFAULT"
   remotes:
     oca: https://github.com/OCA/runbot-addons.git
-    laslabs: https://github.com/LasLabs/runbot-addons.git
+    sg: https://github.com/steingabelgaard/runbot-addons.git
   target:
-    laslabs aggregated_branch_name
+    sg aggregated_branch_name
   merges:
-    - laslabs long-term/runbot
+    - sg long-term/runbot
 
 ./server-tools:
   defaults:
